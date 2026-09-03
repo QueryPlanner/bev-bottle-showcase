@@ -1,0 +1,20 @@
+{
+  "triangles": 35116,
+  "boundingBoxWDH_mm": [
+    57,
+    30,
+    68
+  ],
+  "bodyEnvelopeMl": 60.68,
+  "interiorMl": 48.31,
+  "seamY": 46.2,
+  "deckY": 61.3,
+  "totalH": 68,
+  "halfWidth": 28.5,
+  "halfDepth": 15,
+  "sectionExponentBody": 2.5,
+  "sectionExponentDeck": 2.15,
+  "slantDeg": 10,
+  "wallMm": 1.8,
+  "ringSegments": 192
+}

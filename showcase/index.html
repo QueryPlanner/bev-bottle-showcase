@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bev. — Bottle Themes</title>
+<meta name="description" content="One measured 3D reconstruction of the bev. hydration jar, shown in every color the brand book defines." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,900;1,600&family=Caveat:wght@600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="wordmark" aria-label="bev.">
+      <span class="chip chip-blue"></span>
+      <span class="chip chip-red"></span>
+      <span class="chip chip-yellow"></span>
+      <span class="word">bev.</span>
+    </div>
+    <p class="kicker">Bottle theme showcase</p>
+  </header>
+
+  <main>
+    <section class="hero" id="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">One measured reconstruction, five brand colorways</p>
+        <h1>Same bottle.<br />Every theme.</h1>
+        <p class="lede">
+          The shape is a photograph-based reconstruction of the bev. 40&nbsp;ml
+          squircle flip-top jar — same geometry every time. What changes is the
+          label, skinned from colors sampled directly out of the bev. brand book.
+        </p>
+
+        <div class="theme-switch" id="theme-switch" role="tablist" aria-label="Choose a theme"></div>
+
+        <div class="theme-detail" id="theme-detail"></div>
+
+        <div class="hero-controls">
+          <button id="btn-lid" type="button">Open lid</button>
+          <button id="btn-spin" class="active" type="button">Auto-rotate</button>
+          <span class="hint">drag to orbit · scroll to zoom</span>
+        </div>
+      </div>
+
+      <div class="hero-stage">
+        <canvas id="hero-gl"></canvas>
+      </div>
+    </section>
+
+    <section class="gallery" id="gallery">
+      <h2>All five, side by side</h2>
+      <p class="section-lede">Every theme, rendered from the same mesh at the same time.</p>
+      <div class="grid" id="gallery-grid">
+        <!-- cards injected by main.js from themes.js -->
+      </div>
+    </section>
+
+    <section class="provenance">
+      <h2>Where this comes from</h2>
+      <div class="provenance-grid">
+        <div>
+          <h3>The shape</h3>
+          <p>Traced row-by-row off seven product photographs and the dimensions
+            printed on the spec card, then lofted as superellipse cross-sections.
+            Not tooling-accurate — good for renders, comps, and exactly this kind
+            of showcase. See the reconstruction's own <code>MEASUREMENTS.md</code>
+            for the full accuracy breakdown.</p>
+        </div>
+        <div>
+          <h3>The colors</h3>
+          <p>Sampled as exact pixel values from the bev. brand book's color
+            palette and primary logo pages, not eyeballed. Hydrate, Perform and
+            Recover are the three colorways the brand book itself names; Berry
+            and Signature are honest extensions built from its secondary swatches
+            and wordmark ink, labeled as such rather than presented as official
+            brand pillars.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Fan-made brand showcase built on top of a measured 3D reconstruction. Not an official bev. asset.</p>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

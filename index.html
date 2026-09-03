@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Standalone build of the published artifact: same geometry, Three.js vendored
+     locally so it runs with no network. -->
+<style>
+  :root{ color-scheme: light dark; }
+  html,body{ margin:0; }
+  body{ font: 14px system-ui, -apple-system, sans-serif; background:#faf9f7; }
+  img{ max-width:100%; }
+  [hidden]{ display:none !important; }
+</style>
+<title>Squircle Jar Reconstruction</title>
+<style>
+  :root{
+    --bg: #eae7e0;
+    --bg-2: #ddd9d0;
+    --surface: #f8f6f2;
+    --surface-line: #d9d4c9;
+    --ink: #211f1a;
+    --ink-muted: #756f63;
+    --ink-faint: #a29b8c;
+    --accent: #b8460e;
+    --accent-soft: #b8460e1a;
+    --measured: #4a6c7c;
+    --measured-soft: #4a6c7c1a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #17150f;
+      --bg-2: #1f1c15;
+      --surface: #221e17;
+      --surface-line: #3a352a;
+      --ink: #f1ede3;
+      --ink-muted: #a89f8d;
+      --ink-faint: #6f6858;
+      --accent: #e2712f;
+      --accent-soft: #e2712f26;
+      --measured: #86b3c6;
+      --measured-soft: #86b3c626;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #17150f;
+    --bg-2: #1f1c15;
+    --surface: #221e17;
+    --surface-line: #3a352a;
+    --ink: #f1ede3;
+    --ink-muted: #a89f8d;
+    --ink-faint: #6f6858;
+    --accent: #e2712f;
+    --accent-soft: #e2712f26;
+    --measured: #86b3c6;
+    --measured-soft: #86b3c626;
+  }
+
+  *{ box-sizing: border-box; }
+  body{
+    margin: 0;
+    background: radial-gradient(120% 140% at 50% 6%, var(--bg-2) 0%, var(--bg) 62%);
+    color: var(--ink);
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+  }
+  .display{ font-family: 'Archivo', 'Manrope', system-ui, sans-serif; }
+  .mono{ font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  .app{ position: relative; width: 100vw; height: 100vh; }
+  canvas{ display: block; touch-action: none; cursor: grab; }
+  canvas:active{ cursor: grabbing; }
+
+  header{
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 24px; padding: 22px 26px; pointer-events: none;
+  }
+  .titleblock .kicker{
+    display: block; margin-bottom: 5px;
+    font-size: 10.5px; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700;
+  }
+  .titleblock h1{ margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.015em; }
+  .titleblock p{
+    margin: 7px 0 0; max-width: 33ch; font-size: 12.5px; line-height: 1.55; color: var(--ink-muted);
+  }
+  .badge{
+    font-size: 10.5px; letter-spacing: 0.07em; text-transform: uppercase;
+    background: var(--surface); border: 1px solid var(--surface-line);
+    color: var(--ink-muted); padding: 6px 10px; border-radius: 5px; white-space: nowrap;
+  }
+
+  .panel{
+    position: absolute; pointer-events: auto;
+    background: var(--surface); border: 1px solid var(--surface-line); border-radius: 10px;
+  }
+  .spec-panel{ top: 92px; right: 26px; width: 256px; padding: 14px 16px 12px;
+    max-height: calc(100vh - 170px); overflow-y: auto; }
+  .spec-panel h2{
+    margin: 0 0 3px; font-size: 10.5px; letter-spacing: 0.11em; text-transform: uppercase;
+    font-weight: 700; color: var(--ink-faint);
+  }
+  .spec-panel h2 + .sub{ margin: 0 0 9px; font-size: 10.5px; color: var(--ink-faint); }
+  .spec-panel .group{ margin-bottom: 13px; }
+  .spec-panel .group:last-of-type{ margin-bottom: 0; }
+  .tag{
+    display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; padding: 2px 5px; border-radius: 3px; vertical-align: 1px;
+  }
+  .tag.locked{ background: var(--accent-soft); color: var(--accent); }
+  .tag.est{ background: var(--measured-soft); color: var(--measured); }
+  .row{
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    padding: 6px 0; border-top: 1px solid var(--surface-line); font-size: 12.5px;
+  }
+  .row .k{ color: var(--ink-muted); }
+  .row .v{ font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .note{
+    margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--surface-line);
+    font-size: 10.8px; line-height: 1.55; color: var(--ink-muted);
+  }
+  .note b{ color: var(--ink); font-weight: 700; }
+
+  .controls{ bottom: 24px; left: 26px; display: flex; gap: 5px; padding: 5px; flex-wrap: wrap; max-width: 62vw; }
+  .controls button{
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    background: transparent; color: var(--ink-muted);
+    border: 1px solid transparent; border-radius: 6px; padding: 8px 11px; cursor: pointer;
+  }
+  .controls button:hover{ color: var(--ink); }
+  .controls button:focus-visible{ outline: 2px solid var(--accent); outline-offset: 1px; }
+  .controls button.active{ background: var(--accent-soft); color: var(--accent); border-color: var(--accent-soft); }
+  .controls .sep{ width: 1px; background: var(--surface-line); margin: 4px 3px; }
+
+  .hint-inline{
+    align-self: center; padding: 0 10px 0 12px; margin-left: 2px;
+    border-left: 1px solid var(--surface-line);
+    font-size: 11px; color: var(--ink-faint); white-space: nowrap;
+  }
+
+  .dim-label{
+    position: absolute; transform: translate(-50%, -50%);
+    font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+    pointer-events: none; white-space: nowrap; opacity: 0; transition: opacity .15s ease;
+    background: var(--surface);
+  }
+  .dim-label.show{ opacity: 1; }
+  .dim-label.spec{ color: var(--accent); border: 1px solid var(--accent-soft); }
+  .dim-label.est{ color: var(--measured); border: 1px solid var(--measured-soft); }
+
+  @media (max-width: 700px){
+    .spec-panel{ display: none; }
+    .titleblock p{ display: none; }
+    .hint-inline{ display: none; }
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Manrope:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+</head>
+<body>
+<div class="app">
+  <canvas id="gl"></canvas>
+
+  <header>
+    <div class="titleblock">
+      <span class="kicker">Retraced from six views + the spec card</span>
+      <h1 class="display">Squircle Flip-Top Jar</h1>
+      <p>Silhouette traced row-by-row off the photos: shoulder cap tapering <em>inward</em>, slanted deck, hinged lid with a thumb scoop and a dispensing orifice.</p>
+    </div>
+    <div class="badge mono">68 × 57 × 30&nbsp;mm · 40&nbsp;ml</div>
+  </header>
+
+  <div class="panel spec-panel">
+    <h2 class="display">Where the numbers come from</h2>
+    <p class="sub">Two kinds of truth, kept separate.</p>
+
+    <div class="group">
+      <div class="row" style="border-top:none;padding-top:0">
+        <span class="k"><span class="tag locked">From label</span></span>
+        <span class="v"></span>
+      </div>
+      <div class="row"><span class="k">Overall height</span><span class="v mono">68.0 mm</span></div>
+      <div class="row"><span class="k">Width</span><span class="v mono">57.0 mm</span></div>
+      <div class="row"><span class="k">Depth</span><span class="v mono">30.0 mm</span></div>
+    </div>
+
+    <div class="group">
+      <div class="row"><span class="k"><span class="tag est">Traced from photos</span></span><span class="v"></span></div>
+      <div class="row"><span class="k">Cap seam height</span><span class="v mono">46.2 mm <span style="color:var(--ink-faint)">·68%</span></span></div>
+      <div class="row"><span class="k">Deck rim height</span><span class="v mono">61.3 mm <span style="color:var(--ink-faint)">·90%</span></span></div>
+      <div class="row"><span class="k">Cap taper</span><span class="v mono">53.4 → 39.0 mm</span></div>
+      <div class="row"><span class="k">Deck slant</span><span class="v mono">10°</span></div>
+      <div class="row"><span class="k">Section</span><span class="v mono">superellipse n 2.5<span style="color:var(--ink-faint)"> ±.7</span></span></div>
+      <div class="row"><span class="k">Base roll</span><span class="v mono">4.5 mm</span></div>
+      <div class="row"><span class="k">Body envelope</span><span class="v mono" id="vol-readout">–</span></div>
+    </div>
+
+    <div class="group">
+      <div class="row"><span class="k"><span class="tag est">Cross-check</span></span><span class="v"></span></div>
+      <div class="row"><span class="k">Interior, 1.8 mm walls</span><span class="v mono" id="cap-readout">–</span></div>
+      <div class="row" style="border-top:none;padding-top:2px">
+        <span class="k" style="font-size:10.8px;line-height:1.45">A 40 ml fill plus ~17% headspace — normal for this kind of pack, so the traced body holds up.</span>
+      </div>
+    </div>
+
+    <p class="note">
+      The section is <b>oval-leaning, not boxy</b>: the 3/4 views carry no shading crease, and the silhouette
+      only ever narrows off-axis (6–12% across the views) — a boxy section would show a crease and would
+      grow <i>wider</i> at ~28°. Exponent is bracketed 2.0–3.5 by the unknown view angles; 2.5 is the middle.
+      Still open: the photos measure <b>W/H 0.75</b> against the label's <b>0.84</b>, so the photographed jar
+      runs ~10% leaner than the 40&nbsp;ml spec. The model follows the label — <b>Photo aspect</b> shows the other.
+    </p>
+  </div>
+
+  <div class="panel controls">
+    <button id="btn-lid">Open lid</button>
+    <div class="sep"></div>
+    <button id="btn-guides" class="active">Dimensions</button>
+    <button id="btn-wire">Wireframe</button>
+    <button id="btn-spin">Auto-rotate</button>
+    <button id="btn-aspect">Photo aspect</button>
+    <span class="hint-inline">drag to orbit · scroll to zoom</span>
+  </div>
+
+
+  <div id="dim-h" class="dim-label spec mono">68 mm</div>
+  <div id="dim-w" class="dim-label spec mono">57 mm</div>
+  <div id="dim-d" class="dim-label spec mono">30 mm</div>
+  <div id="dim-s" class="dim-label est mono">seam 46.2</div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ==== GEOMETRY:BEGIN — shared verbatim with tools/export_mesh.mjs ==== */
+  /* =====================================================================
+     PART 1 — THE MEASURED PROFILE
+     Every pair below is [height mm, half-width as a fraction of 28.5 mm],
+     read off the straight-on product view by tracing the silhouette edge
+     row by row, then rescaled so the labelled 68 mm height and 57 mm width
+     land exactly. Edge-of-silhouette readings were used (not the front
+     face) because those are unaffected by the camera's downward tilt.
+     ===================================================================== */
+
+  var HW = 28.5;              // half width  (57 mm)
+  var HD = 15.0;              // half depth  (30 mm)
+  var TOTAL_H = 68.0;
+  var SEAM_Y = 46.2;          // cap / body parting line   (0.680 H measured)
+  var DECK_Y = 61.3;          // lid parting line          (0.901 H measured)
+  var FILLET_R = 4.5;         // base edge roll
+  var SLANT = 10 * Math.PI / 180;   // deck + lid slant, back (-Z) edge high
+  var N_BODY = 2.5;           // section exponent, measured (see note below)
+  var N_DECK = 2.15;          // ...easing rounder still at the deck
+  var NSEG = 192;             // points per ring
+
+  // Body wall, from the top of the base fillet to the seam.
+  var BODY_KF = [
+    [ 4.0, 0.888], [ 5.2, 0.896], [ 7.5, 0.912], [11.2, 0.935],
+    [14.7, 0.950], [18.2, 0.965], [21.8, 0.977], [25.3, 0.988],
+    [28.8, 0.992], [32.4, 1.000], [35.9, 0.996], [39.4, 0.988],
+    [43.0, 0.969], [45.4, 0.950], [46.2, 0.937]
+  ];
+  // Shoulder cap, seam up to the deck rim.
+  var CAP_KF = [
+    [46.2, 0.937], [46.5, 0.935], [48.9, 0.900], [51.3, 0.862],
+    [53.7, 0.823], [56.0, 0.781], [58.3, 0.738], [60.1, 0.704],
+    [61.3, 0.685]
+  ];
+
+  // Catmull-Rom through the keyframes so the silhouette curves instead of
+  // kinking at every sample.
+  function splineAt(kf, h){
+    var n = kf.length;
+    if (h <= kf[0][0]) return kf[0][1];
+    if (h >= kf[n-1][0]) return kf[n-1][1];
+    var i = 0; while (i < n - 2 && kf[i+1][0] < h) i++;
+    var p0 = kf[Math.max(0,i-1)][1], p1 = kf[i][1], p2 = kf[i+1][1], p3 = kf[Math.min(n-1,i+2)][1];
+    var t = (h - kf[i][0]) / (kf[i+1][0] - kf[i][0]);
+    var t2 = t*t, t3 = t2*t;
+    return 0.5*((2*p1) + (-p0+p2)*t + (2*p0-5*p1+4*p2-p3)*t2 + (-p0+3*p1-3*p2+p3)*t3);
+  }
+
+  // Depth tapers more gently than width, so the section drifts from
+  // squircle at the seam toward oval at the deck — which is what the
+  // open-lid photo shows.
+  function capMix(y){
+    var t = Math.max(0, Math.min(1, (y - SEAM_Y) / (DECK_Y - SEAM_Y)));
+    return t*t*(3-2*t);
+  }
+  function widthFrac(y){
+    return y <= SEAM_Y ? splineAt(BODY_KF, y) : splineAt(CAP_KF, y);
+  }
+  function depthFrac(y){
+    var w = widthFrac(y);
+    if (y <= SEAM_Y) return w;                 // body keeps its aspect
+    return w + (1 - w) * 0.45 * capMix(y);     // cap's depth holds up
+  }
+  function expAt(y){
+    if (y <= SEAM_Y) return N_BODY;
+    return N_BODY + (N_DECK - N_BODY) * capMix(y);
+  }
+
+  /* =====================================================================
+     PART 2 — SECTIONS AND LOFTING
+     ===================================================================== */
+
+  function sectionPoint(t, a, b, n){
+    var c = Math.cos(t), s = Math.sin(t), e = 2 / n;
+    return {
+      x: (c < 0 ? -1 : 1) * a * Math.pow(Math.abs(c), e),
+      z: (s < 0 ? -1 : 1) * b * Math.pow(Math.abs(s), e)
+    };
+  }
+
+  // The thumb scoop: a shallow dish pressed into the FRONT of the collar
+  // (front = +Z), strongest right under the lid, fading out 5.5 mm down.
+  var NOTCH_DEPTH = 1.7, NOTCH_ARC = 0.22, NOTCH_FADE = 4.5;
+  function notchInset(t, y){
+    var hFall = (y - (DECK_Y - NOTCH_FADE)) / NOTCH_FADE;
+    if (hFall <= 0) return 0;
+    hFall = Math.min(1, hFall); hFall = hFall*hFall*(3-2*hFall);
+    var dt = t - Math.PI/2;                                   // front of the jar
+    var d = Math.abs(Math.atan2(Math.sin(dt), Math.cos(dt))); // wrapped distance
+    if (d > NOTCH_ARC) return 0;
+    var aFall = Math.cos(0.5 * Math.PI * (d / NOTCH_ARC));
+    return NOTCH_DEPTH * hFall * aFall * aFall;
+  }
+
+  function ringAt(y, opts){
+    opts = opts || {};
+    var scale = opts.scale === undefined ? 1 : opts.scale;
+    var inset = opts.inset || 0;
+    var a = widthFrac(y) * HW * scale - inset;
+    var b = depthFrac(y) * HD * scale - inset;
+    var n = expAt(y);
+    var pts = [];
+    for (var i = 0; i < NSEG; i++){
+      var t = (i / NSEG) * Math.PI * 2;
+      var p = sectionPoint(t, a, b, n);
+      var yy = y;
+      if (opts.slantFrom !== undefined){
+        // Solve y and section together: the deck plane is slanted, so a
+        // point's height depends on its depth, which depends on its height.
+        for (var k = 0; k < 3; k++){
+          yy = opts.slantFrom - p.z * Math.tan(SLANT);
+          var pp = sectionPoint(t, widthFrac(yy)*HW*scale - inset, depthFrac(yy)*HD*scale - inset, expAt(yy));
+          p = pp;
+        }
+        yy = opts.slantFrom - p.z * Math.tan(SLANT);
+      }
+      if (opts.notch) p.z -= notchInset(t, yy);
+      pts.push({ x: p.x, y: yy, z: p.z });
+    }
+    return pts;
+  }
+
+  // Lofts consecutive rings into a strip mesh. Winding is verified against
+  // the expected normal direction rather than assumed.
+  function loft(rings, expected){
+    var pos = [], idx = [], n = rings[0].length;
+    for (var r = 0; r < rings.length; r++)
+      for (var i = 0; i < n; i++){ var p = rings[r][i]; pos.push(p.x, p.y, p.z); }
+    for (var r2 = 0; r2 < rings.length - 1; r2++)
+      for (var j = 0; j < n; j++){
+        var a = r2*n + j, b = r2*n + (j+1)%n, c = (r2+1)*n + (j+1)%n, d = (r2+1)*n + j;
+        idx.push(a,b,c, a,c,d);
+      }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setIndex(idx);
+    orient(g, expected);
+    return g;
+  }
+
+  // Fan-fills a ring to a single point (flat faces, lid tops, bottoms).
+  function fan(ring, apex, expected){
+    var pos = [apex.x, apex.y, apex.z], idx = [], n = ring.length;
+    for (var i = 0; i < n; i++){ pos.push(ring[i].x, ring[i].y, ring[i].z); }
+    for (var j = 0; j < n; j++) idx.push(0, 1+j, 1+(j+1)%n);
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setIndex(idx);
+    orient(g, expected);
+    return g;
+  }
+
+  function orient(geo, expected){
+    geo.computeVertexNormals();
+    var p = geo.attributes.position, nr = geo.attributes.normal, dot = 0;
+    for (var i = 0; i < p.count; i++){
+      var ex, ey, ez;
+      if (expected === 'radial'){ ex = p.getX(i); ey = 0; ez = p.getZ(i); }
+      else { ex = 0; ey = expected; ez = 0; }
+      var len = Math.sqrt(ex*ex + ey*ey + ez*ez) || 1;
+      dot += (nr.getX(i)*ex + nr.getY(i)*ey + nr.getZ(i)*ez) / len;
+    }
+    if (dot < 0){
+      var a = geo.index.array;
+      for (var t = 0; t < a.length; t += 3){ var tmp = a[t+1]; a[t+1] = a[t+2]; a[t+2] = tmp; }
+      geo.index.needsUpdate = true;
+      geo.computeVertexNormals();
+    }
+  }
+
+  function volume(geo){
+    var p = geo.attributes.position, a = geo.index.array, v = 0;
+    var p1 = new THREE.Vector3(), p2 = new THREE.Vector3(), p3 = new THREE.Vector3(), cr = new THREE.Vector3();
+    for (var t = 0; t < a.length; t += 3){
+      p1.fromBufferAttribute(p, a[t]); p2.fromBufferAttribute(p, a[t+1]); p3.fromBufferAttribute(p, a[t+2]);
+      cr.copy(p2).cross(p3); v += p1.dot(cr) / 6;
+    }
+    return v;
+  }
+
+  /* =====================================================================
+     PART 3 — THE THREE MOULDED PARTS
+     ===================================================================== */
+
+  // ---- body: flat base, 4 mm rolled edge, gently barrelled wall ----
+  var bodyRings = [];
+  var baseWall = widthFrac(FILLET_R) * HW;   // wall width where the fillet ends
+  for (var i = 0; i <= 7; i++){              // the rolled base edge
+    var ph = (i / 7) * Math.PI / 2;
+    var inset = FILLET_R - FILLET_R * Math.sin(ph);
+    var y = FILLET_R - FILLET_R * Math.cos(ph);
+    bodyRings.push(ringAt(FILLET_R, { inset: inset }).map(function(p){ return {x:p.x, y:y, z:p.z}; }));
+  }
+  for (var y2 = FILLET_R; y2 <= SEAM_Y - 0.001; y2 += 0.85) bodyRings.push(ringAt(y2));
+  bodyRings.push(ringAt(SEAM_Y - 0.22));
+
+  var bodySide = loft(bodyRings, 'radial');
+  var bodyBase = fan(bodyRings[0], { x:0, y:0, z:0 }, -1);
+  var bodyTop  = fan(bodyRings[bodyRings.length-1], { x:0, y:SEAM_Y-0.22, z:0 }, 1);
+  var bodyVol = volume(bodySide) + volume(bodyBase) + volume(bodyTop);
+
+  // Capacity cross-check: the same body walked inward by one wall thickness.
+  // If that lands near the 40 ml on the label, the traced profile is sound.
+  var WALL = 1.8, capacityMl = 0;
+  (function(){
+    var inner = [];
+    for (var y = WALL; y <= SEAM_Y - 0.3; y += 0.9) inner.push(ringAt(y, { inset: WALL }));
+    var side = loft(inner, 'radial');
+    var flo  = fan(inner[0], { x:0, y:WALL, z:0 }, -1);
+    var top  = fan(inner[inner.length-1], { x:0, y:inner[inner.length-1][0].y, z:0 }, 1);
+    capacityMl = (volume(side) + volume(flo) + volume(top)) / 1000;
+  })();
+
+  // ---- cap: skirt flush with the body, tapering to a slanted deck ----
+  var capRings = [];
+  for (var y3 = SEAM_Y + 0.18; y3 < DECK_Y - 2.6; y3 += 0.7) capRings.push(ringAt(y3, { notch: true }));
+  capRings.push(ringAt(DECK_Y - 2.6, { notch: true }));
+  capRings.push(ringAt(DECK_Y, { slantFrom: DECK_Y - 0.55, notch: true }));   // chamfer foot
+  var rimRing = ringAt(DECK_Y, { slantFrom: DECK_Y, inset: 0.3, notch: true }); // chamfer top
+  capRings.push(rimRing);
+  var capSide = loft(capRings, 'radial');
+
+  // deck: flat slanted top with a dispensing orifice
+  var ORIFICE_R = 2.4, SPOUT_DROP = 3.2;
+  function orificeRing(scale, dy){
+    var pts = [];
+    for (var i = 0; i < NSEG; i++){
+      var t = (i / NSEG) * Math.PI * 2;
+      var x = Math.cos(t) * ORIFICE_R * scale, z = Math.sin(t) * ORIFICE_R * scale;
+      pts.push({ x: x, y: DECK_Y - z * Math.tan(SLANT) + dy, z: z });
+    }
+    return pts;
+  }
+  var oTop = orificeRing(1, 0);
+  var deck = loft([rimRing, oTop], 1);
+  var spout = loft([oTop, orificeRing(0.94, -SPOUT_DROP)], 'radial');
+  var spoutFloor = fan(orificeRing(0.94, -SPOUT_DROP), { x:0, y:DECK_Y - SPOUT_DROP, z:0 }, 1);
+  var capBottom = fan(capRings[0], { x:0, y:SEAM_Y + 0.18, z:0 }, -1);
+
+  // ---- lid: slanted disc, rolled edge, hinge at the back, sealing plug ----
+  var LID_GAP = 0.35, LID_WALL = 3.7, LID_ROLL = 0.6;
+  var lidBase = DECK_Y + LID_GAP;
+  function lidRing(dy, inset){
+    var pts = [];
+    for (var i = 0; i < NSEG; i++){
+      var t = (i / NSEG) * Math.PI * 2;
+      var a = widthFrac(DECK_Y) * HW * 1.006 - inset;
+      var b = depthFrac(DECK_Y) * HD * 1.006 - inset;
+      var p = sectionPoint(t, a, b, N_DECK);
+      pts.push({ x: p.x, y: lidBase + dy - p.z * Math.tan(SLANT), z: p.z });
+    }
+    return pts;
+  }
+  var lidRings = [lidRing(0, 0), lidRing(LID_WALL * 0.55, 0.14), lidRing(LID_WALL, 0.3)];
+  for (var k2 = 1; k2 <= 6; k2++){                   // rolled top edge, slight draft
+    var ph2 = (k2 / 6) * Math.PI / 2;
+    lidRings.push(lidRing(LID_WALL + LID_ROLL * Math.sin(ph2), 0.3 + LID_ROLL - LID_ROLL * Math.cos(ph2)));
+  }
+  var lidSide = loft(lidRings, 'radial');
+  var lidTop = fan(lidRings[lidRings.length-1], { x:0, y:lidBase + LID_WALL + LID_ROLL, z:0 }, 1);
+  var lidUnder = fan(lidRings[0], { x:0, y:lidBase, z:0 }, -1);
+
+  var plugGeo = new THREE.CylinderGeometry(ORIFICE_R * 0.92, ORIFICE_R * 0.80, 2.6, 40);
+  var hingeGeo = new THREE.BoxGeometry(11, 1.1, 2.4);
+
+  // Hinge frame: the axis the lid swings about, at the high back edge of the deck.
+  var hingeZ = -depthFrac(DECK_Y) * HD * 1.008;
+  var hingeY = lidBase - hingeZ * Math.tan(SLANT);
+  var PLUG_AT  = { x: 0, y: lidBase - 1.2, z: 0 };
+  var HINGE_AT = { x: 0, y: hingeY - 0.2, z: hingeZ + 1.0 };
+  /* ==== GEOMETRY:END ==== */
+
+  /* =====================================================================
+     PART 4 — SCENE
+     ===================================================================== */
+
+  var canvas = document.getElementById('gl');
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(19, 1, 1, 4000);
+
+  // A canvas-drawn studio环境: soft overhead box, darker floor.
+  (function(){
+    var c = document.createElement('canvas'); c.width = 512; c.height = 256;
+    var g = c.getContext('2d');
+    var grad = g.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0.00, '#ffffff');
+    grad.addColorStop(0.38, '#efece6');
+    grad.addColorStop(0.52, '#d5cfc4');
+    grad.addColorStop(1.00, '#7d776d');
+    g.fillStyle = grad; g.fillRect(0, 0, 512, 256);
+    g.fillStyle = 'rgba(255,255,255,0.95)';
+    g.beginPath(); g.ellipse(150, 52, 96, 40, 0, 0, Math.PI*2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.55)';
+    g.beginPath(); g.ellipse(390, 74, 74, 30, 0, 0, Math.PI*2); g.fill();
+    var tex = new THREE.CanvasTexture(c);
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    tex.encoding = THREE.sRGBEncoding;
+    var pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    scene.environment = pmrem.fromEquirectangular(tex).texture;
+    tex.dispose(); pmrem.dispose();
+  })();
+
+  scene.add(new THREE.HemisphereLight(0xfff7ec, 0x3b3327, 0.45));
+  var key = new THREE.DirectionalLight(0xfff4e6, 1.5);
+  key.position.set(115, 175, 95);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.camera.left = -60; key.shadow.camera.right = 60;
+  key.shadow.camera.top = 60; key.shadow.camera.bottom = -60;
+  key.shadow.camera.near = 20; key.shadow.camera.far = 420;
+  key.shadow.radius = 3; key.shadow.bias = -0.0008;
+  scene.add(key);
+  var fill = new THREE.DirectionalLight(0xe4edff, 0.42); fill.position.set(-150, 70, 40); scene.add(fill);
+  var rim  = new THREE.DirectionalLight(0xffffff, 0.55); rim.position.set(-30, 95, -170); scene.add(rim);
+
+  // Matte body, glossier closure — the photos show that difference clearly.
+  var matBody = new THREE.MeshPhysicalMaterial({ color: 0xf2efe8, roughness: 0.62, metalness: 0, clearcoat: 0.22, clearcoatRoughness: 0.6, envMapIntensity: 0.85 });
+  var matCap  = new THREE.MeshPhysicalMaterial({ color: 0xf6f4ee, roughness: 0.16, metalness: 0, clearcoat: 0.85, clearcoatRoughness: 0.1, envMapIntensity: 1.15 });
+  var matIn   = new THREE.MeshStandardMaterial({ color: 0xb9b2a5, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
+
+  var jar = new THREE.Group();
+  var aspectGroup = new THREE.Group();     // horizontal scale for the aspect toggle
+  aspectGroup.add(jar);
+  scene.add(aspectGroup);
+
+  function addMesh(geo, mat, parent){
+    var m = new THREE.Mesh(geo, mat);
+    m.castShadow = true; m.receiveShadow = true;
+    (parent || jar).add(m);
+    return m;
+  }
+
+  addMesh(bodySide, matBody); addMesh(bodyBase, matBody); addMesh(bodyTop, matBody);
+  addMesh(capSide, matCap); addMesh(deck, matCap); addMesh(capBottom, matCap);
+  addMesh(spout, matIn); addMesh(spoutFloor, matIn);
+
+  // lid on a hinge pivot at the back edge of the deck
+  var lidPivot = new THREE.Group();
+  lidPivot.position.set(0, hingeY, hingeZ);
+  var lid = new THREE.Group();
+  lid.position.set(0, -hingeY, -hingeZ);
+  lidPivot.add(lid); jar.add(lidPivot);
+
+  addMesh(lidSide, matCap, lid); addMesh(lidTop, matCap, lid); addMesh(lidUnder, matCap, lid);
+  var plug = addMesh(plugGeo, matCap, lid);
+  plug.position.set(PLUG_AT.x, PLUG_AT.y, PLUG_AT.z);
+  var hinge = addMesh(hingeGeo, matCap, lid);
+  hinge.position.set(HINGE_AT.x, HINGE_AT.y, HINGE_AT.z);
+
+  var ground = new THREE.Mesh(new THREE.CircleGeometry(180, 72), new THREE.ShadowMaterial({ opacity: 0.2 }));
+  ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
+
+  document.getElementById('vol-readout').textContent = (bodyVol/1000).toFixed(1) + ' ml';
+  document.getElementById('cap-readout').textContent = '≈ ' + capacityMl.toFixed(0) + ' ml';
+
+  /* =====================================================================
+     PART 5 — DIMENSION GUIDES
+     ===================================================================== */
+  function dashed(a, b, color){
+    var g = new THREE.BufferGeometry().setFromPoints([a, b]);
+    var l = new THREE.Line(g, new THREE.LineDashedMaterial({ color: color, dashSize: 2.2, gapSize: 1.5, transparent: true, opacity: 0.9 }));
+    l.computeLineDistances(); return l;
+  }
+  var C_SPEC = 0xb8460e, C_EST = 0x4a6c7c;
+  var guides = new THREE.Group();
+  var gx = 44;
+  guides.add(dashed(new THREE.Vector3(gx,0,0), new THREE.Vector3(gx,TOTAL_H,0), C_SPEC));
+  guides.add(dashed(new THREE.Vector3(gx-2.5,0,0), new THREE.Vector3(gx+2.5,0,0), C_SPEC));
+  guides.add(dashed(new THREE.Vector3(gx-2.5,TOTAL_H,0), new THREE.Vector3(gx+2.5,TOTAL_H,0), C_SPEC));
+  guides.add(dashed(new THREE.Vector3(-HW,0.6,HD), new THREE.Vector3(HW,0.6,HD), C_SPEC));
+  guides.add(dashed(new THREE.Vector3(HW,0.6,-HD), new THREE.Vector3(HW,0.6,HD), C_SPEC));
+  guides.add(dashed(new THREE.Vector3(-gx,SEAM_Y,0), new THREE.Vector3(gx*0.62,SEAM_Y,0), C_EST));
+  scene.add(guides);
+
+  var labels = [
+    { el: document.getElementById('dim-h'), p: new THREE.Vector3(gx, TOTAL_H/2, 0) },
+    { el: document.getElementById('dim-w'), p: new THREE.Vector3(0, 0.6, HD) },
+    { el: document.getElementById('dim-d'), p: new THREE.Vector3(HW, 0.6, 0) },
+    { el: document.getElementById('dim-s'), p: new THREE.Vector3(-gx, SEAM_Y, 0) }
+  ];
+
+  /* =====================================================================
+     PART 6 — CAMERA, INPUT, UI
+     ===================================================================== */
+  var target = new THREE.Vector3(0, 33, 0);
+  var sph = { r: 370, theta: 0.62, phi: 1.30 };
+  function updateCam(){
+    camera.position.set(
+      target.x + sph.r * Math.sin(sph.phi) * Math.sin(sph.theta),
+      target.y + sph.r * Math.cos(sph.phi),
+      target.z + sph.r * Math.sin(sph.phi) * Math.cos(sph.theta));
+    camera.lookAt(target);
+  }
+  updateCam();
+
+  var drag = false, lx = 0, ly = 0;
+  canvas.addEventListener('pointerdown', function(e){ drag = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointerup', function(){ drag = false; });
+  canvas.addEventListener('pointercancel', function(){ drag = false; });
+  canvas.addEventListener('pointermove', function(e){
+    if (!drag) return;
+    sph.theta -= (e.clientX - lx) * 0.0065;
+    sph.phi = Math.min(Math.max(sph.phi - (e.clientY - ly) * 0.0065, 0.22), 2.55);
+    lx = e.clientX; ly = e.clientY; updateCam();
+  });
+  canvas.addEventListener('wheel', function(e){
+    e.preventDefault();
+    sph.r = Math.min(Math.max(sph.r + e.deltaY * 0.42, 210), 900); updateCam();
+  }, { passive: false });
+
+  var lidOpen = false, lidAngle = 0, spin = false, guidesOn = true, photoAspect = false;
+  var btnLid = document.getElementById('btn-lid');
+  btnLid.addEventListener('click', function(){
+    lidOpen = !lidOpen;
+    btnLid.textContent = lidOpen ? 'Close lid' : 'Open lid';
+    btnLid.classList.toggle('active', lidOpen);
+  });
+  var btnGuides = document.getElementById('btn-guides');
+  btnGuides.addEventListener('click', function(){
+    guidesOn = !guidesOn; guides.visible = guidesOn;
+    labels.forEach(function(l){ l.el.classList.toggle('show', guidesOn); });
+    btnGuides.classList.toggle('active', guidesOn);
+  });
+  var btnWire = document.getElementById('btn-wire');
+  btnWire.addEventListener('click', function(){
+    var w = !matBody.wireframe;
+    matBody.wireframe = matCap.wireframe = w;
+    btnWire.classList.toggle('active', w);
+  });
+  var btnSpin = document.getElementById('btn-spin');
+  btnSpin.addEventListener('click', function(){ spin = !spin; btnSpin.classList.toggle('active', spin); });
+  var btnAspect = document.getElementById('btn-aspect');
+  btnAspect.addEventListener('click', function(){
+    photoAspect = !photoAspect;
+    var k = photoAspect ? 0.752/0.838 : 1;   // measured W/H vs the label's
+    aspectGroup.scale.set(k, 1, k);
+    btnAspect.classList.toggle('active', photoAspect);
+    guides.visible = guidesOn && !photoAspect;
+    labels.forEach(function(l){ l.el.classList.toggle('show', guidesOn && !photoAspect); });
+  });
+  labels.forEach(function(l){ l.el.classList.add('show'); });
+
+  function resize(){
+    var w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h); camera.aspect = w/h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize); resize();
+
+  var v3 = new THREE.Vector3();
+  function tick(){
+    requestAnimationFrame(tick);
+    var goal = lidOpen ? 1.98 : 0;             // ~113°, as photographed
+    lidAngle += (goal - lidAngle) * 0.12;
+    lidPivot.rotation.x = -lidAngle;
+    if (spin && !drag){ sph.theta += 0.0032; updateCam(); }
+    if (guides.visible){
+      var w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
+      for (var i = 0; i < labels.length; i++){
+        v3.copy(labels[i].p).project(camera);
+        labels[i].el.style.left = ((v3.x*0.5+0.5)*w) + 'px';
+        labels[i].el.style.top  = ((-v3.y*0.5+0.5)*h) + 'px';
+      }
+    }
+    renderer.render(scene, camera);
+  }
+  tick();
+})();
+</script>
+
+</body>
+</html>
